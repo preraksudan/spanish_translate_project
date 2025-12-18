@@ -3,7 +3,7 @@ import ReactPaginate from "react-paginate";
 import "./index.css"
 
 function App() {
-  const [posts, setPosts] = useState([]);
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Pagination
@@ -12,19 +12,20 @@ function App() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [userFilter, setUserFilter] = useState("");
+  const [recordFilter, setrecordFilter] = useState("");
 
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchRecords = async () => {
       try {
         // 🔁 Later replace with query params:
-        // `/posts?userId=${userFilter}&q=${searchTerm}&_page=${currentPage+1}`
+        // `/posts?userId=${recordFilter}&q=${searchTerm}&_page=${currentPage+1}`
+        // "https://jsonplaceholder.typicode.com/posts" // reference url. (though same json is imported) using backend api call (node + mysql).
         const res = await fetch(
-          "https://jsonplaceholder.typicode.com/posts"
+          "http://localhost:4001/getRecords"
         );
         const data = await res.json();
-        setPosts(data);
+        setRecords(data);
       } catch (error) {
         console.error("Fetch error:", error);
       } finally {
@@ -32,28 +33,29 @@ function App() {
       }
     };
 
-    fetchPosts();
+    fetchRecords();
   }, []);
 
   /* ---------------- FILTER LOGIC (CLIENT SIDE) ---------------- */
-  const filteredPosts = posts.filter((post) => {
+  const filteredRecords = records.filter((record) => {
     const matchesSearch =
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.body.toLowerCase().includes(searchTerm.toLowerCase());
+      (searchTerm == "") || 
+      (record.spanish.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.english.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesFlag =
+      ((record.flag == recordFilter) || (recordFilter == 0)) ;// will push to array if flag value found (0 to handle default state)
 
-    const matchesUser =
-      userFilter === "" || post.userId === Number(userFilter);
-
-    return matchesSearch && matchesUser;
+    return matchesSearch && matchesFlag;
   });
 
   /* ---------------- PAGINATION ---------------- */
   const pageCount = Math.ceil(
-    filteredPosts.length / recordsPerPage
+    filteredRecords.length / recordsPerPage
   );
 
   const offset = currentPage * recordsPerPage;
-  const currentPosts = filteredPosts.slice(
+  const currentRecords = filteredRecords.slice(
     offset,
     offset + recordsPerPage
   );
@@ -65,14 +67,14 @@ function App() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchTerm, userFilter, recordsPerPage]);
+  }, [searchTerm, recordFilter, recordsPerPage]);// recordFilter
 
   if (loading) return <h2 style={{ textAlign: "center" }}>Loading...</h2>;
 
   /* ---------------- RENDER ---------------- */
   return (
     <div className="container mt-5">
-      <h1 className="text-primary mb-4">Blog Posts</h1>
+      <h1 className="text-primary mb-4">Espanol English Translation CRUD</h1>
 
       {/* FILTER BAR */}
       <div className="row mb-3">
@@ -80,7 +82,7 @@ function App() {
           <input
             type="text"
             className="form-control"
-            placeholder="Search title or body..."
+            placeholder="Search Keyword english or spanish."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -89,13 +91,13 @@ function App() {
         <div className="col-md-3">
           <select
             className="form-select"
-            value={userFilter}
-            onChange={(e) => setUserFilter(e.target.value)}
+            value={recordFilter}
+            onChange={(e) => setrecordFilter(e.target.value)}
           >
-            <option value="">All Users</option>
-            {[...Array(10)].map((_, i) => (
+            <option value="0">All Flags</option>
+            {[...Array(4)].map((_, i) => (
               <option key={i + 1} value={i + 1}>
-                User {i + 1}
+                Flag Status {i + 1}
               </option>
             ))}
           </select>
@@ -116,14 +118,14 @@ function App() {
         </div>
       </div>
 
-      {/* POSTS */}
+      {/* Records */}
       <ul className="list-group mb-4">
-        {currentPosts.map((post) => (
-          <li key={post.id} className="list-group-item">
-            <strong>{post.title}</strong>
-            <p className="mb-0">{post.body}</p>
+        {currentRecords.map((record) => (
+          <li key={record.id} className="list-group-item">
+            <strong>{record.spanish}</strong>
+            <p className="mb-0">{record.english}</p>
             <small className="text-muted">
-              User ID: {post.userId}
+              Spanish to English Id {record.id}
             </small>
           </li>
         ))}
