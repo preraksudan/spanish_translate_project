@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admin_users {
+  id       Int    @id @default(autoincrement())
+  username String @unique(map: "username") @db.VarChar(50)
+  password String @db.VarChar(255)
+}
+
+model pos_definitions {
+  pos         String        @id @db.VarChar(64)
+  description String        @db.VarChar(128)
+  created     DateTime      @default(now()) @db.Timestamp(0)
+  updated     DateTime      @default(now()) @db.Timestamp(0)
+  spanish_pos spanish_pos[]
+}
+
+model spanish_audio {
+  id                 Int                @db.UnsignedInt
+  audio_file         String             @db.VarChar(255)
+  created            DateTime           @default(now()) @db.Timestamp(0)
+  updated            DateTime           @default(now()) @db.Timestamp(0)
+  spanish_to_english spanish_to_english @relation(fields: [id], references: [id], onDelete: Cascade, map: "spanish_audio_ibfk_1")
+
+  @@id([id, audio_file])
+  @@index([id], map: "idx_audio")
+}
+
+model spanish_pos {
+  id                 Int                @db.UnsignedInt
+  pos                String             @db.VarChar(64)
+  created            DateTime           @default(now()) @db.Timestamp(0)
+  updated            DateTime           @default(now()) @db.Timestamp(0)
+  spanish_to_english spanish_to_english @relation(fields: [id], references: [id], onDelete: Cascade, map: "spanish_pos_ibfk_1")
+  pos_definitions    pos_definitions    @relation(fields: [pos], references: [pos], onDelete: Cascade, map: "spanish_pos_ibfk_2")
+
+  @@id([id, pos])
+  @@index([id], map: "idx_pos")
+  @@index([pos], map: "pos")
+}
+
+model spanish_to_english {
+  id            Int             @id @default(autoincrement()) @db.UnsignedInt
+  spanish       String          @db.VarChar(255)
+  english       String          @db.VarChar(255)
+  flag          Boolean?
+  created       DateTime        @default(now()) @db.Timestamp(0)
+  updated       DateTime        @default(now()) @db.Timestamp(0)
+  spanish_audio spanish_audio[]
+  spanish_pos   spanish_pos[]
+
+  @@index([english], map: "idx_english")
+  @@index([spanish], map: "idx_spanish")
+}
+
+model post {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String    @db.Text
+  body      String    @db.MediumText
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+}
