@@ -58,7 +58,7 @@ function App() {
     fetchRecords();
 
     return () => controller.abort();
-  }, [searchTerm,  recordFilter, recordsPerPage, currentPage]);
+  }, [searchTerm,  recordFilter, recordsPerPage]);
 
   /* ---------------- FILTER LOGIC (Now managed to server side using api) ---------------- */
   const filteredRecords = records;
@@ -75,7 +75,6 @@ function App() {
 
   const handlePageClick = (event) => {
     setCurrentPage(event.selected);
-    console.log(event.selected+ "and now selected page is "+currentPage);
   };
 
   // Reset page when filters change
