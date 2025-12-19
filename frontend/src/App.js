@@ -85,6 +85,8 @@ function App() {
 
   if (loading) return <h2 style={{ textAlign: "center" }}>Loading...</h2>;
 
+  const flagStatus = 
+      {  1: "🟢 Good" , 2 : "🟡 Needs Checking" , 3 : "🔴 Bad" , 4 : "⚪ Unchecked"};
   /* ---------------- RENDER ---------------- */
   return (
     <div className="container mt-5">
@@ -108,10 +110,10 @@ function App() {
             value={recordFilter}
             onChange={(e) => setrecordFilter(e.target.value)}
           >
-            <option value="">All Flags</option>
+            <option value="">Filter Flag</option>
             {[...Array(4)].map((_, i) => (
               <option key={i + 1} value={i + 1}>
-                Flag Status {i + 1}
+                {flagStatus[i + 1]}
               </option>
             ))}
           </select>
@@ -133,17 +135,37 @@ function App() {
       </div>
 
       {/* Records */}
-      <ul className="list-group mb-4">
-        {currentRecords.map((record) => (
-          <li key={record.id} className="list-group-item">
-            <strong>{record.spanish}</strong>
-            <p className="mb-0">{record.english}</p>
-            <small className="text-muted">
-              Spanish to English Id {record.id}
-            </small>
-          </li>
-        ))}
-      </ul>
+
+      <table className="table table-bordered table-striped">
+        <thead className="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Spanish</th>
+            <th>English</th>
+            <th>Flag</th>
+            <th>POS</th>
+            <th>Description</th>
+            <th>Audio File</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {currentRecords.map((record) => (
+            <tr key={record.id}>
+              <td>{record.id}</td>
+              <td><strong>{record.spanish}</strong></td>
+              <td>{record.english}</td>
+              <td>{flagStatus[record.flag]}</td>
+              <td>{record.pos}</td>
+              <td>{record.description}</td>
+              <td>{record.audio_file}</td>
+              <td>Add_{record.id} Edit_{record.id}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
 
       {/* PAGINATION */}
       <ReactPaginate

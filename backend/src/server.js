@@ -95,9 +95,11 @@ app.get("/getPosts", async (req, res) => {
           ste.spanish,
           ste.english,
           ste.flag,
+          GROUP_CONCAT(DISTINCT  sa.audio_file ORDER BY  sa.audio_file SEPARATOR ', ') AS audio_file,
           GROUP_CONCAT(DISTINCT sp.pos ORDER BY sp.pos SEPARATOR ', ') AS pos,
           GROUP_CONCAT(DISTINCT pd.description ORDER BY pd.description SEPARATOR ', ') AS description
         FROM spanish_to_english ste
+        LEFT JOIN spanish_audio sa on sa.id = ste.id
         LEFT JOIN spanish_pos sp ON sp.id = ste.id
         LEFT JOIN pos_definitions pd ON pd.pos = sp.pos
         WHERE (
