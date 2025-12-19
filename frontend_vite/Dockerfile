@@ -10,7 +10,7 @@ RUN npm install
 COPY . .
 
 # Vite dev server port
-EXPOSE 5173
+EXPOSE 3000
 
 # Required for Docker hot reload
 CMD ["npm", "run", "dev", "--", "--host"]
