@@ -8,47 +8,60 @@ function App() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(0);
-  const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const [recordsPerPage, setRecordsPerPage] = useState(5);
 
   // Filters
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [recordFilter, setrecordFilter] = useState("");
 
   /* ---------------- FETCH DATA ---------------- */
+
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+
+  useEffect(() => {
+
+    const controller = new AbortController();
     const fetchRecords = async () => {
+      setLoading(true);
       try {
-        // 🔁 Later replace with query params:
-        // `/posts?userId=${recordFilter}&q=${searchTerm}&_page=${currentPage+1}`
-        // "https://jsonplaceholder.typicode.com/posts" // reference url. (though same json is imported) using backend api call (node + mysql).
+        const params = new URLSearchParams({
+          search: searchTerm,
+          page: currentPage,
+          flag: recordFilter,
+          recordLimit: recordsPerPage,
+        });
+
+
         const res = await fetch(
-          "http://localhost:4001/getRecords"
+          `${process.env.REACT_APP_API_URL}/getRecords?${params}`,
+          { signal: controller.signal }
         );
+
+        if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
-        setRecords(data);
-      } catch (error) {
-        console.error("Fetch error:", error);
+        setRecords(data.data);
+      } catch (err) {
+        if (err.name !== "AbortError") console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRecords();
-  }, []);
 
-  /* ---------------- FILTER LOGIC (CLIENT SIDE) ---------------- */
-  const filteredRecords = records.filter((record) => {
-    const matchesSearch =
-      (searchTerm == "") || 
-      (record.spanish.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.english.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesFlag =
-      ((record.flag == recordFilter) || (recordFilter == 0)) ;// will push to array if flag value found (0 to handle default state)
+    return () => controller.abort();
+  }, [searchTerm,  recordFilter, recordsPerPage, currentPage]);
 
-    return matchesSearch && matchesFlag;
-  });
-
+  /* ---------------- FILTER LOGIC (Now managed to server side using api) ---------------- */
+  const filteredRecords = records;
   /* ---------------- PAGINATION ---------------- */
   const pageCount = Math.ceil(
     filteredRecords.length / recordsPerPage
@@ -62,12 +75,13 @@ function App() {
 
   const handlePageClick = (event) => {
     setCurrentPage(event.selected);
+    console.log(event.selected+ "and now selected page is "+currentPage);
   };
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchTerm, recordFilter, recordsPerPage]);// recordFilter
+  }, [searchTerm,  recordFilter, recordsPerPage]);
 
   if (loading) return <h2 style={{ textAlign: "center" }}>Loading...</h2>;
 
@@ -83,8 +97,8 @@ function App() {
             type="text"
             className="form-control"
             placeholder="Search Keyword english or spanish."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
 
@@ -94,7 +108,7 @@ function App() {
             value={recordFilter}
             onChange={(e) => setrecordFilter(e.target.value)}
           >
-            <option value="0">All Flags</option>
+            <option value="">All Flags</option>
             {[...Array(4)].map((_, i) => (
               <option key={i + 1} value={i + 1}>
                 Flag Status {i + 1}
@@ -112,8 +126,8 @@ function App() {
             }
           >
             <option value={5}>5 per page</option>
+            <option value={1}>1 per page</option>
             <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
           </select>
         </div>
       </div>

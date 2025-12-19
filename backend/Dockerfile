@@ -7,11 +7,11 @@ RUN apk add --no-cache openssl
 
 COPY package*.json ./
 RUN npm install
+# copy prisma file to docker container (so that no issues wihile npx prisma generate)
+COPY prisma ./prisma/
+RUN npx prisma generate
 
 COPY . .
-
-# Generate Prisma client
-RUN npx prisma generate
 
 EXPOSE 4001
 

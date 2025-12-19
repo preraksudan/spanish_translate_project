@@ -8,12 +8,12 @@ import cors from "cors";
 dotenv.config();
 const app = express();
 app.use(express.json());
-// app.use(cors()); //# un-block cors for all
+app.use(cors()); //# un-block cors for all
 
 //# un-block cors for selected urls
-app.use(cors({
-  origin: "http://localhost:300",
-}));
+// app.use(cors({
+//   origin: "http://localhost:3000",
+// }));
 
 const prisma = new PrismaClient();
 const port = process.env.PORT || 4001;
@@ -77,36 +77,58 @@ app.get("/getPosts", async (req, res) => {
 
 
 
-app.get("/getRecords", async (req, res) => {
-  try {
-    const results = await prisma.$queryRaw`
-      select
-        ste.id, ste.spanish, ste.english, ste.flag,
-        #sa.audio_file,
-        sp.pos,
-        pd.description
-      from 
-        spanish_to_english as ste
-      #left join 
-       # spanish_audio sa on sa.id = ste.id
-      left join 
-        spanish_pos sp on sp.id = ste.id
-      left join 
-        pos_definitions pd on pd.pos = sp.pos;
-    `;
+  app.get("/getRecords", async (req, res) => {
+    const fullUrl = `http://localhost:4001${req.originalUrl}`;
+    console.log("URL:", fullUrl);
+    console.log("Query:", req.query);
 
-    // 2025 Fix: Handle BigInt serialization for res.json()
-    const serializedResults = JSON.parse(
-      JSON.stringify(results, (key, value) =>
-        typeof value === 'bigint' ? value.toString() : value
-      )
-    );
+    const search = req.query.search ?? "";
+    const page = Number(req.query.page ?? 0);
+    const recordLimit = Number(req.query.recordLimit ?? 5);
+    const offset = page * recordLimit;
+    const flag = req.query.flag ?? "";
 
-    res.json(serializedResults);
-  } catch (err) {
-    console.error("Database Error:", err);
-    res.status(500).json({ error: "Failed to fetch records" });
-  }
-});
+    try {
 
+      const results = await prisma.$queryRaw`SELECT
+          ste.id,
+          ste.spanish,
+          ste.english,
+          ste.flag,
+          GROUP_CONCAT(DISTINCT sp.pos ORDER BY sp.pos SEPARATOR ', ') AS pos,
+          GROUP_CONCAT(DISTINCT pd.description ORDER BY pd.description SEPARATOR ', ') AS description
+        FROM spanish_to_english ste
+        LEFT JOIN spanish_pos sp ON sp.id = ste.id
+        LEFT JOIN pos_definitions pd ON pd.pos = sp.pos
+        WHERE (
+          ${search} = ''
+          OR ste.spanish LIKE ${'%' + search + '%'}
+          OR ste.english LIKE ${'%' + search + '%'}
+        )
+          AND 
+          (
+            ${flag} = ''
+            OR ste.flag = ${ flag }
+          )
+        GROUP BY
+          ste.id`;
+
+      // ✅ BigInt-safe JSON serialization
+      const serializedResults = JSON.parse(
+        JSON.stringify(results, (_, value) =>
+          typeof value === "bigint" ? value.toString() : value
+        )
+      );
+
+      res.json({
+        page,
+        recordLimit,
+        count: serializedResults.length,
+        data: serializedResults,
+      });
+    } catch (err) {
+      console.error("Database Error:", err);
+      res.status(500).json({ error: "Failed to fetch records" });
+    }
+  });
 
