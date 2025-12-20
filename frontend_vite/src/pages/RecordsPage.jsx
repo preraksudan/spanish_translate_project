@@ -239,7 +239,7 @@ function RecordsPage() {
         <tbody>
           {currentRecords.map((record, index) => (
             <tr key={record.id}>
-              <td>{index + 1}</td>
+              <td>{offset + (index + 1)}</td>
               <td><strong>{record.spanish}</strong></td>
               <td>{record.english}</td>
               <td>{flagStatus[record.flag]}</td>
