@@ -42,13 +42,33 @@ export default function AddRecordModal({ show, onClose, onSave }) {
   };
 
 
-
   useEffect(() => {
-    fetch(`${apiUrl}/api/pos`)
-      .then(res => res.json())
-      .then(data => setPosOptions(data.data))
-      .catch(console.error);
-  }, []);
+    if (!show) return;
+
+    const controller = new AbortController();
+
+    const fetchPos = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/pos`, {
+          signal: controller.signal,
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch POS");
+
+        const data = await res.json();
+        setPosOptions(data.data);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("POS fetch error:", err);
+        }
+      }
+    };
+
+    fetchPos();
+
+    // 🧹 Cleanup when modal closes or unmounts
+    return () => controller.abort();
+  }, [show]);
 
 
   const handlePosChange = (pos) => {

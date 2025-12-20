@@ -117,7 +117,7 @@ function RecordsPage() {
 
 
         const res = await fetch(
-          `${apiUrl}/getRecords?${params}`,
+          `${apiUrl}/api/records?${params}`,
           { signal: controller.signal }
         );
 

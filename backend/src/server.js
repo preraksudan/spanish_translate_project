@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-import postsRoutes from "./routes/posts.routes.js"; // default import
+import postsRoutes from "./routes/posts.routes.js";
+import translationRoutes from "./routes/translationRecords.routes.js";
+
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 
@@ -19,122 +21,11 @@ const prisma = new PrismaClient();
 const port = process.env.PORT || 4001;
 
 app.use("/api/posts", postsRoutes);
+app.use("/api/records", translationRoutes);
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-
-
-app.get("/posts", async (req, res) => {
-  try {
-    const posts = await prisma.post.findMany({
-      select: {
-        id: true,
-        userId: true,
-        title: true,
-        body: true,
-        createdAt: true
-      },
-      orderBy: {
-        id: "desc"
-      },
-      take: 100
-    });
-
-    res.send(posts);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Failed to fetch posts");
-  }
-});
-
-
-
-app.get("/getPosts", async (req, res) => {
-  try {
-    const result = await prisma.post.findMany({
-      where: {
-        userId: 1, // Filter criteria goes here
-      },
-      orderBy: {
-        title: 'asc', // Sorting goes here
-      },
-      select: {
-        title: true, // Specific fields to return go here
-        id: true     // You can add more fields if needed
-      },
-    });
-
-    res.json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Failed to fetch posts **");
-  }
-});
-
-
-
-
-
-
-  app.get("/getRecords", async (req, res) => {
-    const fullUrl = `http://localhost:4001${req.originalUrl}`;
-    console.log("URL:", fullUrl);
-    console.log("Query:", req.query);
-
-    const search = req.query.search ?? "";
-    const page = Number(req.query.page ?? 0);
-    const recordLimit = Number(req.query.recordLimit ?? 100);
-    const offset = page * recordLimit;
-    const flag = req.query.flag ?? "";
-
-    try {
-
-      const results = await prisma.$queryRaw`SELECT
-          ste.id,
-          ste.spanish,
-          ste.english,
-          ste.flag,
-          GROUP_CONCAT(DISTINCT  sa.audio_file ORDER BY  sa.audio_file SEPARATOR ', ') AS audio_file,
-          GROUP_CONCAT(DISTINCT sp.pos ORDER BY sp.pos SEPARATOR ', ') AS pos,
-          GROUP_CONCAT(DISTINCT pd.description ORDER BY pd.description SEPARATOR ', ') AS description
-        FROM spanish_to_english ste
-        LEFT JOIN spanish_audio sa on sa.id = ste.id
-        LEFT JOIN spanish_pos sp ON sp.id = ste.id
-        LEFT JOIN pos_definitions pd ON pd.pos = sp.pos
-        WHERE (
-          ${search} = ''
-          OR ste.spanish LIKE ${'%' + search + '%'}
-          OR ste.english LIKE ${'%' + search + '%'}
-        )
-          AND 
-          (
-            ${flag} = ''
-            OR ste.flag = ${ flag }
-          )
-        GROUP BY
-          ste.id`;
-
-      // ✅ BigInt-safe JSON serialization
-      const serializedResults = JSON.parse(
-        JSON.stringify(results, (_, value) =>
-          typeof value === "bigint" ? value.toString() : value
-        )
-      );
-
-      res.json({
-        page,
-        recordLimit,
-        count: serializedResults.length,
-        data: serializedResults,
-      });
-    } catch (err) {
-      console.error("Database Error:", err);
-      res.status(500).json({ error: "Failed to fetch records" });
-    }
-  });
-
-
 
   app.get("/api/pos", async (req, res) => {
     const fullUrl = `http://localhost:4001${req.originalUrl}`;
